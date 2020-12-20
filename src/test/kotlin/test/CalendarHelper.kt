@@ -8,6 +8,7 @@ import uk.co.ceilingcat.rrd.gateways.calendaroutputgateway.CalendarName
 import java.util.concurrent.TimeUnit.SECONDS
 import kotlin.io.path.ExperimentalPathApi
 
+// @todo sort the duplication here
 class CalendarHelper {
 
     companion object {
