@@ -7,6 +7,7 @@ buildscript {
 }
 
 plugins {
+	id 'application'
 	id 'jacoco'
 	id 'maven-publish'
 	id 'org.jetbrains.dokka' version "${versions_dokka}"
@@ -17,6 +18,14 @@ apply plugin: 'uk.co.ceilingcat.SemanticVersions'
 
 group = 'uk.co.ceilingcat.rrd'
 description = 'Refuse Recycling Dates - Monolith'
+
+application {
+    mainClass.set('uk.co.ceilingcat.rrd.monolith.Main')
+}
+
+run {
+    systemProperty "PROPERTIES_PATH", System.getProperty("PROPERTIES_PATH")
+}
 
 dependencies {
     implementation "com.sun.mail:javax.mail:${versions_javax_mail}"
