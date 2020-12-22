@@ -43,6 +43,9 @@ class Main(properties: Properties = System.getProperties()) {
                     applicationFactoryFactoryClassNameConfiguration(this),
                     calendarNameConfiguration(this),
                     calendarSummaryTemplateConfiguration(this),
+                    driverLocationConfiguration(this),
+                    driverOptionsConfiguration(this),
+                    driverPropertyConfiguration(this),
                     emailBodyTextConfiguration(this),
                     emailFromConfiguration(this),
                     emailPasswordConfiguration(this),
@@ -53,7 +56,11 @@ class Main(properties: Properties = System.getProperties()) {
                     MaximumNotifyDurationSeconds(this),
                     outputGatewayPatternConfiguration(this),
                     subjectTemplateConfiguration(this),
-                    worksheetsSearchDirectoryConfiguration(this)
+                    worksheetsSearchDirectoryConfiguration(this),
+                    streetNameSearchTermConfiguration(this),
+                    postCodeSearchTermConfiguration(this),
+                    startUrlConfiguration(this),
+                    waitDurationSecondsConfiguration(this)
                 ).mapLeft { MainConfigurationError }.flatMap { configuration ->
                     createApplicationFactory(configuration).mapLeft { MainFactoryError }.flatMap { factory ->
                         factory.notifyOfNextServiceDate.execute().mapLeft { MainExecutionError }

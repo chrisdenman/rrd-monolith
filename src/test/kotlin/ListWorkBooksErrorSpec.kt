@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
 import uk.co.ceilingcat.rrd.monolith.test.PropertiesHelper
+import uk.co.ceilingcat.rrd.monolith.test.TestData
+import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.INPUT_GATEWAY_PATTERN_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.WORKSHEETS.EMPTY
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.XlsxHelper.Companion.withSheet
@@ -24,7 +26,10 @@ class ListWorkBooksErrorSpec {
         MainExecutionError assertLeft withSheet(EMPTY).parentFile.let { spreadsheetDirectory ->
             PropertiesHelper.mutateProperties({ properties ->
                 properties.set(
-                    mapOf(WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetDirectory.canonicalPath)
+                    mapOf(
+                        WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetDirectory.canonicalPath,
+                        INPUT_GATEWAY_PATTERN_PROPERTY_NAME to TestData.XLSX_INPUT_GATEWAY_PROPERTY_VALUE
+                    )
                 )
             }).flatMap { (bootstrapProperties, _) ->
                 setSecurityManager(

@@ -10,9 +10,13 @@ import java.io.File
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class MainMainSpec {
+
     @Test
     fun `That we can run the app by calling it's static main() method as in production`() {
-        System.setProperty(PROPERTIES_PATH_PROPERTY_NAME, File(File(APP_TEST_PROPERTIES_PATH), "test").canonicalPath)
+        System.setProperty(
+            PROPERTIES_PATH_PROPERTY_NAME,
+            File(File(APP_TEST_PROPERTIES_PATH), "test").canonicalPath
+        )
         Unit assertEquals Main.main(emptyList<String>().toTypedArray())
     }
 

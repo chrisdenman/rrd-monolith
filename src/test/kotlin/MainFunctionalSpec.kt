@@ -16,19 +16,22 @@ import uk.co.ceilingcat.rrd.monolith.test.NoInputGateways
 import uk.co.ceilingcat.rrd.monolith.test.NoOutputGateways
 import uk.co.ceilingcat.rrd.monolith.test.PropertiesHelper.Companion.mutateProperties
 import uk.co.ceilingcat.rrd.monolith.test.SheetAddress
-import uk.co.ceilingcat.rrd.monolith.test.TestData
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.APPLICATION_FACTORY_FACTORY_CLASS_NAME_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.CALENDAR_NAME_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.CALENDAR_SUMMARY_TEMPLATE_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.DAY_HENCE_NOTIFIED_OF
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.EMAIL_PASSWORD_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.EMAIL_USER_NAME_PROPERTY_NAME
+import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.INPUT_GATEWAY_PATTERN_PROPERTY_NAME
+import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.MAIL_CHECK_TIMEOUT_MS
+import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.MAIL_CHECK_WAIT_MS
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.STREET_NAME_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.SUBJECT_TEMPLATE_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.WORKSHEETS.EMPTY
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.WORKSHEETS.HISTORIC
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.WORKSHEETS.MALFORMED
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME
+import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.XLSX_INPUT_GATEWAY_PROPERTY_VALUE
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.worksheetFile
 import uk.co.ceilingcat.rrd.monolith.test.XlsxHelper.Companion.withEmpty
 import uk.co.ceilingcat.rrd.monolith.test.XlsxHelper.Companion.withRefuseDaysHence
@@ -51,8 +54,8 @@ class MainFunctionalSpec {
             MainExecutionError assertLeft mutateProperties({ properties ->
                 properties.set(
                     mapOf(
-                        WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to
-                            spreadsheetDirectory.canonicalPath,
+                        WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetDirectory.canonicalPath,
+                        INPUT_GATEWAY_PATTERN_PROPERTY_NAME to XLSX_INPUT_GATEWAY_PROPERTY_VALUE,
                         APPLICATION_FACTORY_FACTORY_CLASS_NAME_PROPERTY_NAME to
                             AllInputGatewaysFail::class.qualifiedName!!
                     )
@@ -69,6 +72,7 @@ class MainFunctionalSpec {
                     mapOf(
                         WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to
                             spreadsheetDirectory.canonicalPath,
+                        INPUT_GATEWAY_PATTERN_PROPERTY_NAME to XLSX_INPUT_GATEWAY_PROPERTY_VALUE,
                         APPLICATION_FACTORY_FACTORY_CLASS_NAME_PROPERTY_NAME to
                             AllOutputGatewaysFail::class.qualifiedName!!
                     )
@@ -129,6 +133,7 @@ class MainFunctionalSpec {
                 properties.set(
                     mapOf(
                         WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetDirectory.canonicalPath,
+                        INPUT_GATEWAY_PATTERN_PROPERTY_NAME to XLSX_INPUT_GATEWAY_PROPERTY_VALUE,
                         SUBJECT_TEMPLATE_PROPERTY_NAME to summaryAndSubjectTemplate,
                         CALENDAR_SUMMARY_TEMPLATE_PROPERTY_NAME to summaryAndSubjectTemplate,
                     )
@@ -165,6 +170,7 @@ class MainFunctionalSpec {
                 properties.set(
                     mapOf(
                         WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetDirectory.canonicalPath,
+                        INPUT_GATEWAY_PATTERN_PROPERTY_NAME to XLSX_INPUT_GATEWAY_PROPERTY_VALUE,
                         SUBJECT_TEMPLATE_PROPERTY_NAME to summaryAndSubjectTemplate,
                         CALENDAR_SUMMARY_TEMPLATE_PROPERTY_NAME to summaryAndSubjectTemplate,
                     )
@@ -201,6 +207,7 @@ class MainFunctionalSpec {
                 properties.set(
                     mapOf(
                         WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetDirectory.canonicalPath,
+                        INPUT_GATEWAY_PATTERN_PROPERTY_NAME to XLSX_INPUT_GATEWAY_PROPERTY_VALUE,
                         SUBJECT_TEMPLATE_PROPERTY_NAME to summaryAndSubjectTemplate,
                         CALENDAR_SUMMARY_TEMPLATE_PROPERTY_NAME to summaryAndSubjectTemplate,
                     )
@@ -227,6 +234,7 @@ class MainFunctionalSpec {
                     mapOf(
                         STREET_NAME_PROPERTY_NAME to nonce.toString(),
                         WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetDirectory.canonicalPath,
+                        INPUT_GATEWAY_PATTERN_PROPERTY_NAME to XLSX_INPUT_GATEWAY_PROPERTY_VALUE,
                         SUBJECT_TEMPLATE_PROPERTY_NAME to summaryAndSubjectTemplate,
                         CALENDAR_SUMMARY_TEMPLATE_PROPERTY_NAME to summaryAndSubjectTemplate,
                     )
@@ -246,7 +254,10 @@ class MainFunctionalSpec {
         Unit assertRight worksheetFile(MALFORMED).parentFile.let { spreadsheetDirectory ->
             mutateProperties({ properties ->
                 properties.set(
-                    mapOf(WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetDirectory.canonicalPath)
+                    mapOf(
+                        WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetDirectory.canonicalPath,
+                        INPUT_GATEWAY_PATTERN_PROPERTY_NAME to XLSX_INPUT_GATEWAY_PROPERTY_VALUE
+                    )
                 )
             }).flatMap { (bootstrapProperties, _) ->
                 Main((bootstrapProperties)).execute
@@ -259,7 +270,10 @@ class MainFunctionalSpec {
         Unit assertRight withSheet(EMPTY).parentFile.let { spreadsheetDirectory ->
             mutateProperties({ properties ->
                 properties.set(
-                    mapOf(WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetDirectory.canonicalPath)
+                    mapOf(
+                        WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetDirectory.canonicalPath,
+                        INPUT_GATEWAY_PATTERN_PROPERTY_NAME to XLSX_INPUT_GATEWAY_PROPERTY_VALUE
+                    )
                 )
             }).flatMap { (bootstrapProperties, _) ->
                 Main((bootstrapProperties)).execute
@@ -272,7 +286,10 @@ class MainFunctionalSpec {
         Unit assertRight createTempDirectory().let { spreadsheetDirectory ->
             mutateProperties({ properties ->
                 properties.set(
-                    mapOf(WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetDirectory.canonicalPath)
+                    mapOf(
+                        WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetDirectory.canonicalPath,
+                        INPUT_GATEWAY_PATTERN_PROPERTY_NAME to XLSX_INPUT_GATEWAY_PROPERTY_VALUE
+                    )
                 )
             }).flatMap { (bootstrapProperties, _) ->
                 Main((bootstrapProperties)).execute
@@ -281,28 +298,25 @@ class MainFunctionalSpec {
     }
 
     @Test
-    fun `That the next upcoming event sourced from xlsx is delivered by email and and as a calendar event`() {
+    fun `That the next upcoming event sourced from xlsx is delivered by email and, as a calendar event`() {
         val nonce = UUID.randomUUID()
         withRefuseDaysHence().let { spreadsheetDirectory ->
             true assertRight mutateProperties({ properties ->
                 properties.set(
                     mapOf(
                         WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetDirectory.canonicalPath,
+                        INPUT_GATEWAY_PATTERN_PROPERTY_NAME to XLSX_INPUT_GATEWAY_PROPERTY_VALUE,
                         SUBJECT_TEMPLATE_PROPERTY_NAME to "$nonce - <<serviceType>>",
                         CALENDAR_SUMMARY_TEMPLATE_PROPERTY_NAME to "$nonce - <<serviceType>>",
                     )
                 )
             }).flatMap { (bootstrapProperties, applicationPropertiesAndLocation) ->
                 Main((bootstrapProperties)).execute.flatMap { _ ->
-                    try {
-                        right(
-                            applicationPropertiesAndLocation.let { (it, _) ->
-                                foundAndRemovedMail(it, "$nonce - Refuse") && foundAndRemovedEvent(it, "$nonce - Refuse")
-                            }
-                        )
-                    } finally {
-//                        deleteCalendar(calendarName)
-                    }
+                    right(
+                        applicationPropertiesAndLocation.let { (it, _) ->
+                            foundAndRemovedMail(it, "$nonce - Refuse") && foundAndRemovedEvent(it, "$nonce - Refuse")
+                        }
+                    )
                 }
             }
         }
@@ -316,6 +330,7 @@ class MainFunctionalSpec {
                 properties.set(
                     mapOf(
                         WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetDirectory.canonicalPath,
+                        INPUT_GATEWAY_PATTERN_PROPERTY_NAME to XLSX_INPUT_GATEWAY_PROPERTY_VALUE,
                         SUBJECT_TEMPLATE_PROPERTY_NAME to "$nonce - <<serviceType>>",
                         CALENDAR_SUMMARY_TEMPLATE_PROPERTY_NAME to "$nonce - <<serviceType>>",
                     )
@@ -342,6 +357,7 @@ class MainFunctionalSpec {
             properties.set(
                 mapOf(
                     WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadSheetDirectory.canonicalPath,
+                    INPUT_GATEWAY_PATTERN_PROPERTY_NAME to XLSX_INPUT_GATEWAY_PROPERTY_VALUE,
                     SUBJECT_TEMPLATE_PROPERTY_NAME to "$nonce - <<serviceType>>",
                     CALENDAR_SUMMARY_TEMPLATE_PROPERTY_NAME to "$nonce - <<serviceType>>",
                 )
@@ -362,8 +378,8 @@ class MainFunctionalSpec {
         it.getProperty(EMAIL_USER_NAME_PROPERTY_NAME),
         it.getProperty(EMAIL_PASSWORD_PROPERTY_NAME),
         subjectText,
-        TestData.MAIL_CHECK_TIMEOUT_MS,
-        TestData.MAIL_CHECK_WAIT_MS
+        MAIL_CHECK_TIMEOUT_MS,
+        MAIL_CHECK_WAIT_MS
     )
 
     private fun foundEvent(it: Properties, summaryText: String) =

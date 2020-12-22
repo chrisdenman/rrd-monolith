@@ -1,8 +1,11 @@
 package uk.co.ceilingcat.rrd.monolith
 
 import arrow.core.Either
+import arrow.core.Either.Companion.conditionally
 import arrow.core.flatMap
+import arrow.core.left
 import java.io.File
+import java.net.URL
 import java.util.regex.Pattern
 import javax.mail.internet.InternetAddress
 
@@ -21,7 +24,7 @@ typealias PredicatedPropertyValidator = (PropertyValuePredicate) -> PropertyVali
 val predicated: PredicatedPropertyValidator = { predicate ->
     {
         it.flatMap { propertyValue ->
-            Either.conditionally(predicate(propertyValue), { PropertyError }, { propertyValue })
+            conditionally(predicate(propertyValue), { PropertyError }, { propertyValue })
         }
     }
 }
@@ -31,7 +34,7 @@ val catching: (PropertyValidator) -> PropertyValidator = { propertyValidator ->
         try {
             propertyValidator(it)
         } catch (t: Throwable) {
-            Either.left(PropertyError)
+            PropertyError.left()
         }
     }
 }
@@ -49,3 +52,4 @@ val isEmail: PropertyValidator = catching(predicated { InternetAddress(it, true)
 val noCrLfsTabs: PropertyValidator = predicated { it.find { it in listOf('\r', '\n', '\t') } == null }
 val lengthIn: (min: Long, max: Long) -> PropertyValidator =
     { min, max -> catching(predicated { it.length in min..max }) }
+val isUrl: PropertyValidator = catching(predicated { URL(it); true })

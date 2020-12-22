@@ -31,6 +31,7 @@ dependencies {
     implementation "uk.co.ceilingcat.rrd:rrd-calendar-gateway:${versions_rrd_calendar_gateway}"
     implementation "uk.co.ceilingcat.rrd:rrd-xlsx-gateway:${versions_rrd_xlsx_gateway}"
     implementation "uk.co.ceilingcat.rrd:rrd-email-gateway:${versions_rrd_email_gateway}"
+    implementation "uk.co.ceilingcat.rrd:rrd-html-gateway:${versions_rrd_html_gateway}"
 
     testImplementation "org.junit.jupiter:junit-jupiter-api:${versions_junit_jupiter}"
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${versions_junit_jupiter}"

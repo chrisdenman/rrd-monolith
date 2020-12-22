@@ -17,6 +17,11 @@ import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.APP_TEST_PROPERTIES
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.CALENDAR_NAME_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.CALENDAR_SUMMARY_TEMPLATE_LENGTH_RANGE
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.CALENDAR_SUMMARY_TEMPLATE_PROPERTY_NAME
+import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.DRIVER_LOCATION_PROPERTY_NAME
+import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.DRIVER_OPTIONS_LENGTH_RANGE
+import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.DRIVER_OPTIONS_PROPERTY_NAME
+import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.DRIVER_PROPERTY_LENGTH_RANGE
+import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.DRIVER_PROPERTY_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.EMAIL_BODY_TEXT_MAX_LENGTH
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.EMAIL_BODY_TEXT_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.EMAIL_FROM_PROPERTY_NAME
@@ -30,11 +35,17 @@ import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.INPUT_GATEWAY_PATTE
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.MAXIMUM_NOTIFY_DURATION_SECONDS_BOUNDS_RANGE
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.MAXIMUM_NOTIFY_DURATION_SECONDS_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.OUTPUT_GATEWAY_PATTERN_PROPERTY_NAME
+import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.POST_CODE_SEARCH_TERM_LENGTH_RANGE
+import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.POST_CODE_SEARCH_TERM_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.PROPERTIES_PATH_PROPERTY_NAME
+import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.START_URL_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.STREET_NAME_LENGTH_RANGE
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.STREET_NAME_PROPERTY_NAME
+import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.STREET_NAME_SEARCH_TERM_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.SUBJECT_TEMPLATE_LENGTH_RANGE
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.SUBJECT_TEMPLATE_PROPERTY_NAME
+import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.WAIT_DURATION_SECONDS_BOUNDS_RANGE
+import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.WAIT_DURATION_SECONDS_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.TestData.Companion.WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME
 import uk.co.ceilingcat.rrd.monolith.test.XlsxHelper.Companion.withRefuseDaysHence
 import uk.co.ceilingcat.rrd.monolith.test.assertEquals
@@ -264,6 +275,134 @@ internal class MainBadPropertiesSpec {
     }
 
     @Test
+    fun `Executing main and setting the 'POST_CODE_SEARCH_TERM' property to a blank value, yields a main configuration error`() {
+        BLANKS.forEach {
+            MainConfigurationError assertLeft executeMainWithPropertyValue(POST_CODE_SEARCH_TERM_PROPERTY_NAME, it)
+        }
+    }
+
+    @Test
+    fun `Executing main and setting the 'POST_CODE_SEARCH_TERM' property to a value containing CRs or LFs or TABs, yields a main configuration error`() {
+        CRLFSTABS.forEach {
+            MainConfigurationError assertLeft executeMainWithPropertyValue(POST_CODE_SEARCH_TERM_PROPERTY_NAME, it)
+        }
+    }
+
+    @Test
+    fun `Executing main and setting the 'POST_CODE_SEARCH_TERM' property to value out of length bounds, yields a main configuration error`() {
+        POST_CODE_SEARCH_TERM_LENGTH_RANGE.let {
+            MainConfigurationError assertLeft executeMainWithPropertyValue(
+                POST_CODE_SEARCH_TERM_PROPERTY_NAME,
+                EMPTY_TEXT.padEnd((it.first - 1), 'x')
+            )
+            MainConfigurationError assertLeft executeMainWithPropertyValue(
+                POST_CODE_SEARCH_TERM_PROPERTY_NAME,
+                EMPTY_TEXT.padEnd((it.last + 1), 'x')
+            )
+        }
+    }
+
+    @Test
+    fun `Executing main and setting the 'START_URL' property to an invalid url, yields a main configuration error`() {
+        MainConfigurationError assertLeft executeMainWithPropertyValue(START_URL_PROPERTY_NAME, "\\//\\//")
+    }
+
+    @Test
+    fun `Executing main and setting the 'STREET_NAME_SEARCH_TERM' property to a blank value, yields a main configuration error`() {
+        BLANKS.forEach {
+            MainConfigurationError assertLeft executeMainWithPropertyValue(STREET_NAME_SEARCH_TERM_PROPERTY_NAME, it)
+        }
+    }
+
+    @Test
+    fun `Executing main and setting the 'STREET_NAME_SEARCH_TERM' property to a value containing CRs or LFs or TABs, yields a main configuration error`() {
+        CRLFSTABS.forEach {
+            MainConfigurationError assertLeft executeMainWithPropertyValue(STREET_NAME_SEARCH_TERM_PROPERTY_NAME, it)
+        }
+    }
+
+    @Test
+    fun `Executing main and setting the 'STREET_NAME_SEARCH_TERM' property to value out of length bounds, yields a main configuration error`() {
+        POST_CODE_SEARCH_TERM_LENGTH_RANGE.let {
+            MainConfigurationError assertLeft executeMainWithPropertyValue(
+                STREET_NAME_SEARCH_TERM_PROPERTY_NAME,
+                EMPTY_TEXT.padEnd((it.first - 1), 'x')
+            )
+            MainConfigurationError assertLeft executeMainWithPropertyValue(
+                STREET_NAME_SEARCH_TERM_PROPERTY_NAME,
+                EMPTY_TEXT.padEnd((it.last + 1), 'x')
+            )
+        }
+    }
+
+    @Test
+    fun `Executing main and setting the 'WAIT_DURATION_SECONDS' property to a non integral value, yields a main configuration error`() {
+        NON_INTEGRALS.forEach {
+            MainConfigurationError assertLeft executeMainWithPropertyValue(WAIT_DURATION_SECONDS_PROPERTY_NAME, it)
+        }
+    }
+
+    @Test
+    fun `Executing main and setting the 'WAIT_DURATION_SECONDS' property to a value out of bounds, yields a main configuration error`() {
+        WAIT_DURATION_SECONDS_BOUNDS_RANGE.let {
+            MainConfigurationError assertLeft executeMainWithPropertyValue(
+                WAIT_DURATION_SECONDS_PROPERTY_NAME,
+                (it.first - 1).toString()
+            )
+            MainConfigurationError assertLeft executeMainWithPropertyValue(
+                WAIT_DURATION_SECONDS_PROPERTY_NAME,
+                (it.last + 1).toString()
+            )
+        }
+    }
+
+    @Test
+    fun `Executing main and setting the 'DRIVER_PROPERTY' property to a blank value, yields a main configuration error`() {
+        BLANKS.forEach {
+            MainConfigurationError assertLeft executeMainWithPropertyValue(DRIVER_PROPERTY_PROPERTY_NAME, it)
+        }
+    }
+
+    @Test
+    fun `Executing main and setting the 'DRIVER_PROPERTY' property to a value out of bounds, yields a main configuration error`() {
+        DRIVER_PROPERTY_LENGTH_RANGE.let {
+            MainConfigurationError assertLeft executeMainWithPropertyValue(
+                DRIVER_PROPERTY_PROPERTY_NAME,
+                "x".repeat(it.first - 1)
+            )
+            MainConfigurationError assertLeft executeMainWithPropertyValue(
+                DRIVER_PROPERTY_PROPERTY_NAME,
+                "x".repeat(it.last + 1)
+            )
+        }
+    }
+
+    @Test
+    fun `Executing main and setting the 'DRIVER_LOCATION' property to a non extant file, yields a main configuration error`() {
+        MainConfigurationError assertLeft executeMainWithPropertyValue(
+            DRIVER_LOCATION_PROPERTY_NAME,
+            nonExistentDirectory.canonicalPath
+        )
+    }
+
+    @Test
+    fun `Executing main and setting the 'DRIVER_OPTIONS' property to a blank value, yields a main configuration error`() {
+        BLANKS.forEach {
+            MainConfigurationError assertLeft executeMainWithPropertyValue(DRIVER_OPTIONS_PROPERTY_NAME, it)
+        }
+    }
+
+    @Test
+    fun `Executing main and setting the 'DRIVER_OPTIONS' property to a value out of bounds, yields a main configuration error`() {
+        DRIVER_OPTIONS_LENGTH_RANGE.let {
+            MainConfigurationError assertLeft executeMainWithPropertyValue(
+                DRIVER_OPTIONS_PROPERTY_NAME,
+                "x".repeat(it.last + 1)
+            )
+        }
+    }
+
+    @Test
     fun `An incorrect email password, results in a MainExecutionError`() {
         MainExecutionError assertLeft withRefuseDaysHence().let { spreadsheetFile ->
             PropertiesHelper.mutateProperties({ properties ->
@@ -271,6 +410,7 @@ internal class MainBadPropertiesSpec {
                     mapOf(
                         WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetFile.canonicalPath,
                         EMAIL_PASSWORD_PROPERTY_NAME to "this_is_wrong",
+                        INPUT_GATEWAY_PATTERN_PROPERTY_NAME to TestData.XLSX_INPUT_GATEWAY_PROPERTY_VALUE,
                         OUTPUT_GATEWAY_PATTERN_PROPERTY_NAME to TestData.EMAIL_OUTPUT_GATEWAY_PROPERTY_VALUE
                     )
                 )
@@ -288,6 +428,7 @@ internal class MainBadPropertiesSpec {
                     mapOf(
                         WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetFile.canonicalPath,
                         EMAIL_USER_NAME_PROPERTY_NAME to "this_is_wrong",
+                        INPUT_GATEWAY_PATTERN_PROPERTY_NAME to TestData.XLSX_INPUT_GATEWAY_PROPERTY_VALUE,
                         OUTPUT_GATEWAY_PATTERN_PROPERTY_NAME to TestData.EMAIL_OUTPUT_GATEWAY_PROPERTY_VALUE
                     )
                 )
@@ -305,6 +446,7 @@ internal class MainBadPropertiesSpec {
                     mapOf(
                         WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetFile.canonicalPath,
                         EMAIL_USER_NAME_PROPERTY_NAME to "this_is_wrong@afasdfas",
+                        INPUT_GATEWAY_PATTERN_PROPERTY_NAME to TestData.XLSX_INPUT_GATEWAY_PROPERTY_VALUE,
                         OUTPUT_GATEWAY_PATTERN_PROPERTY_NAME to TestData.EMAIL_OUTPUT_GATEWAY_PROPERTY_VALUE
                     )
                 )

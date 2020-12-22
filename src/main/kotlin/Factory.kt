@@ -7,10 +7,11 @@ import arrow.core.computations.either
 import kotlinx.coroutines.runBlocking
 import uk.co.ceilingcat.rrd.gateways.calendaroutputgateway.createCalendarOutputGateway
 import uk.co.ceilingcat.rrd.gateways.emailoutputgateway.createEMailOutputGateway
+import uk.co.ceilingcat.rrd.gateways.htmlinputgateway.Driver
+import uk.co.ceilingcat.rrd.gateways.htmlinputgateway.createHtmlInputGateway
 import uk.co.ceilingcat.rrd.gateways.xlsxinputgateway.createXlsxInputGateway
 import uk.co.ceilingcat.rrd.monolith.FactoryException.FactoryConstructionException
 import uk.co.ceilingcat.rrd.usecases.CurrentDate
-import uk.co.ceilingcat.rrd.usecases.InputGateway
 import uk.co.ceilingcat.rrd.usecases.NextUpcomingInputGateway
 import uk.co.ceilingcat.rrd.usecases.NotifyOfNextServiceDate
 import uk.co.ceilingcat.rrd.usecases.UpcomingOutputGateway
@@ -20,12 +21,6 @@ import kotlin.io.path.ExperimentalPathApi
 import kotlin.reflect.full.createInstance
 
 data class ApplicationFactoryFactoryClassName(val text: String)
-
-typealias InputGatewayFactoryConstructor = (Configuration) -> InputGateway
-
-interface InputGatewayFactory {
-    val constructor: InputGatewayFactoryConstructor
-}
 
 interface ApplicationFactoryFactory {
     fun create(configuration: Configuration): Either<FactoryConstructionError, Factory>
@@ -82,6 +77,15 @@ open class SimpleApplicationFactoryFactory : ApplicationFactoryFactory {
     open fun createInputGateways(configuration: Configuration): Either<FactoryConstructionError, List<NextUpcomingInputGateway>> =
         configuration.run {
             mapOf(
+                "HtmlInputGateway" to {
+                    createHtmlInputGateway(
+                        startUrl,
+                        streetNameSearchTerm,
+                        postCodeSearchTerm,
+                        Driver(driverProperty, driverLocation, driverOptions),
+                        waitDurationSeconds
+                    )
+                },
                 "XlsxInputGateway" to {
                     createXlsxInputGateway(
                         createCurrentDate(),

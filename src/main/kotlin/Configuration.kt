@@ -12,6 +12,13 @@ import uk.co.ceilingcat.rrd.gateways.emailoutputgateway.EmailPassword
 import uk.co.ceilingcat.rrd.gateways.emailoutputgateway.EmailTo
 import uk.co.ceilingcat.rrd.gateways.emailoutputgateway.EmailUserName
 import uk.co.ceilingcat.rrd.gateways.emailoutputgateway.SubjectTemplate
+import uk.co.ceilingcat.rrd.gateways.htmlinputgateway.DriverLocation
+import uk.co.ceilingcat.rrd.gateways.htmlinputgateway.DriverOptions
+import uk.co.ceilingcat.rrd.gateways.htmlinputgateway.DriverProperty
+import uk.co.ceilingcat.rrd.gateways.htmlinputgateway.PostCodeSearchTerm
+import uk.co.ceilingcat.rrd.gateways.htmlinputgateway.StartUrl
+import uk.co.ceilingcat.rrd.gateways.htmlinputgateway.StreetNameSearchTerm
+import uk.co.ceilingcat.rrd.gateways.htmlinputgateway.WaitDurationSeconds
 import uk.co.ceilingcat.rrd.gateways.xlsxinputgateway.StreetName
 import uk.co.ceilingcat.rrd.gateways.xlsxinputgateway.WorkSheetsSearchDirectory
 import java.util.regex.Pattern
@@ -41,12 +48,22 @@ interface Configuration {
     val streetName: StreetName
     val subjectTemplate: SubjectTemplate
     val worksheetsSearchDirectory: WorkSheetsSearchDirectory
+    val streetNameSearchTerm: StreetNameSearchTerm
+    val postCodeSearchTerm: PostCodeSearchTerm
+    val startUrl: StartUrl
+    val waitDurationSeconds: WaitDurationSeconds
+    val driverProperty: DriverProperty
+    val driverLocation: DriverLocation
+    val driverOptions: DriverOptions
 }
 
 private data class ConfigurationData(
     override val applicationFactoryFactoryClassName: ApplicationFactoryFactoryClassName,
     override val calendarName: CalendarName,
     override val calendarSummaryTemplate: CalendarSummaryTemplate,
+    override val driverLocation: DriverLocation,
+    override val driverOptions: DriverOptions,
+    override val driverProperty: DriverProperty,
     override val emailBodyText: EmailBodyText,
     override val emailFrom: EmailFrom,
     override val emailPassword: EmailPassword,
@@ -57,7 +74,11 @@ private data class ConfigurationData(
     override val outputGatewayPattern: OutputGatewayPattern,
     override val streetName: StreetName,
     override val subjectTemplate: SubjectTemplate,
-    override val worksheetsSearchDirectory: WorkSheetsSearchDirectory
+    override val worksheetsSearchDirectory: WorkSheetsSearchDirectory,
+    override val streetNameSearchTerm: StreetNameSearchTerm,
+    override val postCodeSearchTerm: PostCodeSearchTerm,
+    override val startUrl: StartUrl,
+    override val waitDurationSeconds: WaitDurationSeconds,
 ) : Configuration
 
 typealias PropertyCreator<T> = (PropertyValue) -> T
@@ -71,16 +92,31 @@ class PropertyConfiguration<T>(
 )
 
 val propertySourceFetcher: (PropertySource, PropertyName) -> PropertyFetcher =
-    { propertySource, propertyName -> { propertySource.getEither(propertyName) } }
+    { propertySource, propertyName ->
+        {
+            println("fetching propertyName=$propertyName")
+            propertySource.getEither(propertyName)
+        }
+    }
 
 fun <T> validateAndConstruct(propertyConfiguration: PropertyConfiguration<T>) = with(propertyConfiguration) {
-    validator(fetcher()).map { constructor(it) }
+    val x = validator(fetcher()).map { constructor(it) }
+
+    if (x.isLeft()) {
+        println("failed to validate and construct")
+        println(propertyConfiguration.fetcher())
+    }
+
+    x
 }
 
 fun createConfiguration(
     applicationFactoryFactoryClassName: PropertyConfiguration<ApplicationFactoryFactoryClassName>,
     calendarName: PropertyConfiguration<CalendarName>,
     calendarSummaryTemplate: PropertyConfiguration<CalendarSummaryTemplate>,
+    driverLocation: PropertyConfiguration<DriverLocation>,
+    driverOptions: PropertyConfiguration<DriverOptions>,
+    driverProperty: PropertyConfiguration<DriverProperty>,
     emailBodyText: PropertyConfiguration<EmailBodyText>,
     emailFrom: PropertyConfiguration<EmailFrom>,
     emailPassword: PropertyConfiguration<EmailPassword>,
@@ -91,25 +127,38 @@ fun createConfiguration(
     maximumNotifyDurationSeconds: PropertyConfiguration<MaximumNotifyDurationSeconds>,
     outputGatewayPattern: PropertyConfiguration<OutputGatewayPattern>,
     subjectTemplate: PropertyConfiguration<SubjectTemplate>,
-    worksheetsSearchDirectory: PropertyConfiguration<WorkSheetsSearchDirectory>
+    worksheetsSearchDirectory: PropertyConfiguration<WorkSheetsSearchDirectory>,
+    streetNameSearchTerm: PropertyConfiguration<StreetNameSearchTerm>,
+    postCodeSearchTerm: PropertyConfiguration<PostCodeSearchTerm>,
+    startUrl: PropertyConfiguration<StartUrl>,
+    waitDurationSeconds: PropertyConfiguration<WaitDurationSeconds>
 ): Either<ConfigurationError, Configuration> =
     runBlocking {
         either.eager<Throwable, Configuration> {
             val v0 = !validateAndConstruct(applicationFactoryFactoryClassName)
             val v1 = !validateAndConstruct(calendarName)
-            val v3 = !validateAndConstruct(calendarSummaryTemplate)
-            val v4 = !validateAndConstruct(emailBodyText)
-            val v5 = !validateAndConstruct(emailFrom)
-            val v6 = !validateAndConstruct(emailPassword)
-            val v7 = !validateAndConstruct(emailTo)
-            val v8 = !validateAndConstruct(emailUserName)
-            val v9 = !validateAndConstruct(inputGatewayPattern)
-            val v10 = !validateAndConstruct(maximumNotifyDurationSeconds)
-            val v11 = !validateAndConstruct(outputGatewayPattern)
-            val v12 = !validateAndConstruct(streetName)
-            val v13 = !validateAndConstruct(subjectTemplate)
-            val v14 = !validateAndConstruct(worksheetsSearchDirectory)
+            val v2 = !validateAndConstruct(calendarSummaryTemplate)
+            val v3 = !validateAndConstruct(emailBodyText)
+            val v4 = !validateAndConstruct(emailFrom)
+            val v5 = !validateAndConstruct(emailPassword)
+            val v6 = !validateAndConstruct(emailTo)
+            val v7 = !validateAndConstruct(emailUserName)
+            val v8 = !validateAndConstruct(inputGatewayPattern)
+            val v9 = !validateAndConstruct(maximumNotifyDurationSeconds)
+            val v10 = !validateAndConstruct(outputGatewayPattern)
+            val v11 = !validateAndConstruct(streetName)
+            val v12 = !validateAndConstruct(subjectTemplate)
+            val v13 = !validateAndConstruct(worksheetsSearchDirectory)
+            val v14 = !validateAndConstruct(streetNameSearchTerm)
+            val v15 = !validateAndConstruct(postCodeSearchTerm)
+            val v16 = !validateAndConstruct(startUrl)
+            val v17 = !validateAndConstruct(driverProperty)
+            val v18 = !validateAndConstruct(driverLocation)
+            val v19 = !validateAndConstruct(driverOptions)
+            val v20 = !validateAndConstruct(waitDurationSeconds)
 
-            ConfigurationData(v0, v1, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14)
+            ConfigurationData(
+                v0, v1, v2, v18, v19, v17, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v20
+            )
         }
     }.mapLeft { ConfigurationConstructionError }
