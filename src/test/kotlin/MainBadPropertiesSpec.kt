@@ -2,6 +2,7 @@ package uk.co.ceilingcat.rrd.monolith
 
 import arrow.core.Either.Companion.left
 import arrow.core.flatMap
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import uk.co.ceilingcat.rrd.monolith.test.PropertiesHelper
@@ -53,6 +54,8 @@ import uk.co.ceilingcat.rrd.monolith.test.assertLeft
 import uk.co.ceilingcat.rrd.monolith.test.nonExistentDirectory
 import uk.co.ceilingcat.rrd.monolith.test.set
 import java.io.File
+import java.io.FileNotFoundException
+import java.lang.IllegalArgumentException
 import java.util.Properties
 import java.util.UUID
 
@@ -61,30 +64,53 @@ internal class MainBadPropertiesSpec {
 
     @Test
     fun `Executing main without defining the 'PROPERTIES_PATH' property, yields NoPropertyPathPropertyError`() {
-        assert(Main(Properties()).execute == left(MainNoPropertyPathPropertyError))
+        assert(Main(Properties()).execute == left(NoPropertyPathPropertyDefined))
     }
 
     @Test
     fun `Executing main and pointing the 'PROPERTIES_PATH' property to a missing file, yields NoPropertiesFileError`() {
-        assertFailureWithPropertyPathPropertyValue(UUID.randomUUID().toString(), MainNoPropertiesFileError)
+        UUID.randomUUID().toString().let { propertiesPath ->
+            assertFailureWithPropertyPathPropertyValue(
+                propertiesPath,
+                PropertiesFileDoesNotExist("The properties file path '$propertiesPath' does not exist.")
+            )
+        }
     }
 
     @Test
     fun `Executing main and pointing the 'PROPERTIES_PATH' property to a directory, yields PropertiesFileIsDirectoryError`() {
-        assertFailureWithPropertyPathPropertyValue(System.getProperty("user.home"), MainPropertiesFileIsDirectoryError)
+        System.getProperty("user.home").let { propertiesPath ->
+            assertFailureWithPropertyPathPropertyValue(
+                propertiesPath,
+                PropertiesFileIsDirectory(
+                    "The properties file path " +
+                        "'${File(propertiesPath).absolutePath}' is a directory."
+                )
+            )
+        }
     }
 
     @Test
     fun `Executing main and pointing the 'PROPERTIES_PATH' property to a file we do not have permissions to read, yields a MainPropertiesFileLoadError`() {
-        assertFailureWithPropertyPathPropertyValue("/etc/ssh/ssh_host_rsa_key", MainPropertiesFileLoadError)
+        "/etc/ssh/ssh_host_rsa_key".let { propertiesPath ->
+            assertFailureWithPropertyPathPropertyValue(
+                propertiesPath,
+                UnableToLoadPropertiesFile(
+                    "Could not load the properties file '${File(propertiesPath).absolutePath}'.",
+                    FileNotFoundException("$propertiesPath (Permission denied)")
+                )
+            )
+        }
     }
 
     @Test
     fun `Executing main and pointing the 'PROPERTIES_PATH' to an malformed properties file, yields a MalformedPropertiesFileError`() {
-        assertFailureWithPropertyPathPropertyValue(
-            File("./src/test/resources/properties/malformed.properties").canonicalPath,
-            MainMalformedPropertiesFileError
-        )
+        File("./src/test/resources/properties/malformed.properties").absolutePath.let { propertiesPath ->
+            assertFailureWithPropertyPathPropertyValue(
+                propertiesPath,
+                MalformedPropertiesFile("The properties file '$propertiesPath' is malformed.", IllegalArgumentException("Malformed \\uxxxx encoding."))
+            )
+        }
     }
 
     @Test
@@ -624,11 +650,19 @@ internal class MainBadPropertiesSpec {
             propertyValueText: String,
             expectedError: MainRefuseRecyclingDatesError
         ) {
-            expectedError assertLeft Main(
+            val result = Main(
                 Properties().also {
                     it.setProperty(PROPERTIES_PATH_PROPERTY_NAME, propertyValueText)
                 }
             ).execute
+
+            Assertions.assertTrue(result.isLeft())
+            result.fold(
+                {
+                    expectedError assertEquals it
+                },
+                {}
+            )
         }
 
         private fun executeMainWithPropertyValue(

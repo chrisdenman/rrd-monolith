@@ -94,20 +94,12 @@ class PropertyConfiguration<T>(
 val propertySourceFetcher: (PropertySource, PropertyName) -> PropertyFetcher =
     { propertySource, propertyName ->
         {
-            println("fetching propertyName=$propertyName")
             propertySource.getEither(propertyName)
         }
     }
 
 fun <T> validateAndConstruct(propertyConfiguration: PropertyConfiguration<T>) = with(propertyConfiguration) {
-    val x = validator(fetcher()).map { constructor(it) }
-
-    if (x.isLeft()) {
-        println("failed to validate and construct")
-        println(propertyConfiguration.fetcher())
-    }
-
-    x
+    validator(fetcher()).map { constructor(it) }
 }
 
 fun createConfiguration(
