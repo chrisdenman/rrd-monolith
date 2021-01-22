@@ -136,7 +136,6 @@ fun createConfiguration(
     waitDurationSeconds: PropertyConfiguration<WaitDurationSeconds>
 ): Either<ConfigurationError, Configuration> =
     runBlocking {
-        // @todo why does this have to be a throwable
         either.eager<Throwable, Configuration> {
             val v0 = !validateAndConstruct(applicationFactoryFactoryClassName)
             val v1 = !validateAndConstruct(calendarName)
