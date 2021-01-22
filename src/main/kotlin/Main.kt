@@ -142,6 +142,6 @@ class Main(properties: Properties = System.getProperties()) {
             }
 
         @JvmStatic
-        fun main(args: Array<String>): Unit = Main().execute.fold({}, {})
+        fun main(args: Array<String>): Unit = Main().execute.fold({ println(it) }, {})
     }
 }
