@@ -63,7 +63,6 @@ For usage information, please see the [docs](https://chrisdenman.github.io/rrd-m
 
 ## Todo
 
-1.  Why does `either.eager<Throwable, Configuration>` (seemingly) not work with non `Throwable` types?
 1.  Collecting all validation failures and reporting them at once.
 1.  Can we use a ForTuple in createConfiguration?
 1.  Logging (in particular the failures) (with a Monad).

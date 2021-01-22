@@ -13,15 +13,20 @@ sealed class RefuseRecyclingDatesException(
     override val cause: Throwable? = null
 ) : Throwable() {
     object NoPropertyPathPropertyDefinedException : RefuseRecyclingDatesException()
-    data class PropertiesFileDoesNotExistException(override val message: String?) : RefuseRecyclingDatesException()
-    data class PropertiesFileIsDirectoryException(override val message: String?) : RefuseRecyclingDatesException()
-    data class MalformedPropertiesFileException(override val message: String?, override val cause: Throwable?) :
-        RefuseRecyclingDatesException()
+    data class PropertiesFileDoesNotExistException(override val message: String) : RefuseRecyclingDatesException()
+    data class PropertiesFileIsDirectoryException(override val message: String) : RefuseRecyclingDatesException()
+    data class MalformedPropertiesFileException(
+        override val message: String,
+        override val cause: Throwable?
+    ) : RefuseRecyclingDatesException()
+    data class PropertiesFileLoadException(
+        override val message: String,
+        override val cause: Throwable
+    ) : RefuseRecyclingDatesException()
+    data class CouldNotConstructApplicationConfigurationException(
+        override val cause: Throwable
+    ) : RefuseRecyclingDatesException()
 
-    data class PropertiesFileLoadException(override val message: String?, override val cause: Throwable?) :
-        RefuseRecyclingDatesException()
-
-    object ConfigurationException : RefuseRecyclingDatesException()
     object FactoryException : RefuseRecyclingDatesException()
     object ExecutionException : RefuseRecyclingDatesException()
 }
@@ -32,7 +37,8 @@ typealias PropertiesFileDoesNotExist = RefuseRecyclingDatesException.PropertiesF
 typealias PropertiesFileIsDirectory = RefuseRecyclingDatesException.PropertiesFileIsDirectoryException
 typealias MalformedPropertiesFile = RefuseRecyclingDatesException.MalformedPropertiesFileException
 typealias UnableToLoadPropertiesFile = RefuseRecyclingDatesException.PropertiesFileLoadException
-typealias MainConfigurationError = RefuseRecyclingDatesException.ConfigurationException
+typealias CouldNotConstructApplicationConfiguration = RefuseRecyclingDatesException.CouldNotConstructApplicationConfigurationException
+
 typealias MainFactoryError = RefuseRecyclingDatesException.FactoryException
 typealias MainExecutionError = RefuseRecyclingDatesException.ExecutionException
 
@@ -69,7 +75,7 @@ class Main(properties: Properties = System.getProperties()) {
                     startUrlConfiguration(this),
                     waitDurationSecondsConfiguration(this)
                 )
-                    .mapLeft { MainConfigurationError }
+                    .mapLeft { error -> CouldNotConstructApplicationConfiguration(cause = error) }
                     .flatMap { configuration ->
                         createApplicationFactory(configuration)
                             .mapLeft { MainFactoryError }.flatMap { factory ->

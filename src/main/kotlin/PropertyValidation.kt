@@ -12,15 +12,12 @@ sealed class PropertyException(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : Throwable() {
-    data class NoSuchPropertyException(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : PropertyException()
+    data class NoSuchPropertyException(override val message: String) : PropertyException()
     data class PropertyValidationException(
         override val message: String? = null,
         override val cause: Throwable? = null
     ) : PropertyException()
-    data class CouldNotCreateProertyException(
+    data class CouldNotCreatePropertyException(
         override val message: String? = null,
         override val cause: Throwable? = null
     ) : PropertyException()
@@ -28,7 +25,7 @@ sealed class PropertyException(
 typealias PropertyError = PropertyException
 typealias NoSuchProperty = PropertyException.NoSuchPropertyException
 typealias PropertyFailedValidation = PropertyException.PropertyValidationException
-typealias CouldNotCreateProperty = PropertyException.CouldNotCreateProertyException
+typealias CouldNotConstructProperty = PropertyException.CouldNotCreatePropertyException
 
 typealias ErrorOrPropertyValue = Either<PropertyError, PropertyValue>
 typealias PropertyValuePredicate = (propertyValue: PropertyValue) -> Boolean
