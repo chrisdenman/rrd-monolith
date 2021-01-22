@@ -1,7 +1,6 @@
 package uk.co.ceilingcat.rrd.monolith
 
-import arrow.core.Either.Companion.left
-import arrow.core.Either.Companion.right
+import arrow.core.Either.Companion.conditionally
 import java.util.Properties
 
 typealias PropertyName = String
@@ -13,14 +12,13 @@ interface PropertySource {
 
 val createPropertySource: (Properties) -> PropertySource = {
     object : PropertySource {
-        private val properties = it
-
         override fun getEither(propertyName: PropertyName): ErrorOrPropertyValue =
-            with(properties) {
-                when (containsKey(propertyName)) {
-                    true -> right(getProperty(propertyName))
-                    else -> left(PropertyError)
-                }
+            with(it) {
+                conditionally(
+                    containsKey(propertyName),
+                    { NoSuchProperty("There is no property with name '$propertyName'.") },
+                    { getProperty(propertyName) }
+                )
             }
     }
 }

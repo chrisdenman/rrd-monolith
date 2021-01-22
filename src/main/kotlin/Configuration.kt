@@ -2,6 +2,7 @@ package uk.co.ceilingcat.rrd.monolith
 
 import arrow.core.Either
 import arrow.core.computations.either
+import arrow.core.left
 import kotlinx.coroutines.runBlocking
 import uk.co.ceilingcat.rrd.gateways.calendaroutputgateway.CalendarName
 import uk.co.ceilingcat.rrd.gateways.calendaroutputgateway.CalendarSummaryTemplate
@@ -21,17 +22,17 @@ import uk.co.ceilingcat.rrd.gateways.htmlinputgateway.StreetNameSearchTerm
 import uk.co.ceilingcat.rrd.gateways.htmlinputgateway.WaitDurationSeconds
 import uk.co.ceilingcat.rrd.gateways.xlsxinputgateway.StreetName
 import uk.co.ceilingcat.rrd.gateways.xlsxinputgateway.WorkSheetsSearchDirectory
+import uk.co.ceilingcat.rrd.monolith.ConfigurationException.CouldNotCreateConfigurationException
 import java.util.regex.Pattern
 
 data class InputGatewayPattern(val pattern: Pattern)
 data class OutputGatewayPattern(val pattern: Pattern)
 
-sealed class ConfigurationException : Throwable() {
-    object ConfigurationConstructionException : ConfigurationException()
+sealed class ConfigurationException(override val cause: Throwable?) : Throwable() {
+    data class CouldNotCreateConfigurationException(override val cause: Throwable) : ConfigurationException(cause)
 }
 
-typealias ConfigurationError = ConfigurationException
-typealias ConfigurationConstructionError = ConfigurationException.ConfigurationConstructionException
+typealias CouldNotCreateConfiguration = CouldNotCreateConfigurationException
 
 interface Configuration {
     val applicationFactoryFactoryClassName: ApplicationFactoryFactoryClassName
@@ -86,6 +87,7 @@ typealias PropertyFetcher = Function0<ErrorOrPropertyValue>
 
 // a type that encapsulates a property reference and the data needed to validate and construct it
 class PropertyConfiguration<T>(
+    val name: PropertyName,
     val fetcher: PropertyFetcher,
     val validator: PropertyValidator,
     val constructor: PropertyCreator<T>,
@@ -94,21 +96,28 @@ class PropertyConfiguration<T>(
 val propertySourceFetcher: (PropertySource, PropertyName) -> PropertyFetcher =
     { propertySource, propertyName ->
         {
-            println("fetching propertyName=$propertyName")
             propertySource.getEither(propertyName)
         }
     }
 
-fun <T> validateAndConstruct(propertyConfiguration: PropertyConfiguration<T>) = with(propertyConfiguration) {
-    val x = validator(fetcher()).map { constructor(it) }
-
-    if (x.isLeft()) {
-        println("failed to validate and construct")
-        println(propertyConfiguration.fetcher())
+fun <T> validateAndConstruct(propertyConfiguration: PropertyConfiguration<T>) =
+    with(propertyConfiguration) {
+        try {
+            val propertyValue = fetcher()
+            val validatedProperty = validator(propertyValue)
+            val constructedProperty = validatedProperty.map { constructor(it) }
+            constructedProperty.mapLeft {
+                CouldNotConstructProperty(
+                    "Could not validate and construct the '${this.name}' property.",
+                    it
+                )
+            }
+        } catch (t: Throwable) {
+            CouldNotConstructProperty(
+                "An exception was caught whilst validating and constructing the '${this.name}' property."
+            ).left()
+        }
     }
-
-    x
-}
 
 fun createConfiguration(
     applicationFactoryFactoryClassName: PropertyConfiguration<ApplicationFactoryFactoryClassName>,
@@ -132,9 +141,9 @@ fun createConfiguration(
     postCodeSearchTerm: PropertyConfiguration<PostCodeSearchTerm>,
     startUrl: PropertyConfiguration<StartUrl>,
     waitDurationSeconds: PropertyConfiguration<WaitDurationSeconds>
-): Either<ConfigurationError, Configuration> =
+): Either<CouldNotCreateConfiguration, Configuration> =
     runBlocking {
-        either.eager<Throwable, Configuration> {
+        either.eager<PropertyError, Configuration> {
             val v0 = !validateAndConstruct(applicationFactoryFactoryClassName)
             val v1 = !validateAndConstruct(calendarName)
             val v2 = !validateAndConstruct(calendarSummaryTemplate)
@@ -161,4 +170,4 @@ fun createConfiguration(
                 v0, v1, v2, v18, v19, v17, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v20
             )
         }
-    }.mapLeft { ConfigurationConstructionError }
+    }.mapLeft { CouldNotCreateConfiguration(it) }

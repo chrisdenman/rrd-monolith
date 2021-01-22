@@ -8,24 +8,37 @@ import java.io.File
 import java.io.IOException
 import java.util.Properties
 
-sealed class RefuseRecyclingDatesException : Throwable() {
-    object NoPropertyPathPropertyException : RefuseRecyclingDatesException()
-    object NoPropertiesFileException : RefuseRecyclingDatesException()
-    object PropertiesFileIsDirectoryException : RefuseRecyclingDatesException()
-    object MalformedPropertiesFileException : RefuseRecyclingDatesException()
-    object PropertiesFileLoadException : RefuseRecyclingDatesException()
-    object ConfigurationException : RefuseRecyclingDatesException()
+sealed class RefuseRecyclingDatesException(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : Throwable() {
+    object NoPropertyPathPropertyDefinedException : RefuseRecyclingDatesException()
+    data class PropertiesFileDoesNotExistException(override val message: String) : RefuseRecyclingDatesException()
+    data class PropertiesFileIsDirectoryException(override val message: String) : RefuseRecyclingDatesException()
+    data class MalformedPropertiesFileException(
+        override val message: String,
+        override val cause: Throwable?
+    ) : RefuseRecyclingDatesException()
+    data class PropertiesFileLoadException(
+        override val message: String,
+        override val cause: Throwable
+    ) : RefuseRecyclingDatesException()
+    data class CouldNotConstructApplicationConfigurationException(
+        override val cause: Throwable
+    ) : RefuseRecyclingDatesException()
+
     object FactoryException : RefuseRecyclingDatesException()
     object ExecutionException : RefuseRecyclingDatesException()
 }
 
 typealias MainRefuseRecyclingDatesError = RefuseRecyclingDatesException
-typealias MainNoPropertyPathPropertyError = RefuseRecyclingDatesException.NoPropertyPathPropertyException
-typealias MainNoPropertiesFileError = RefuseRecyclingDatesException.NoPropertiesFileException
-typealias MainPropertiesFileIsDirectoryError = RefuseRecyclingDatesException.PropertiesFileIsDirectoryException
-typealias MainMalformedPropertiesFileError = RefuseRecyclingDatesException.MalformedPropertiesFileException
-typealias MainPropertiesFileLoadError = RefuseRecyclingDatesException.PropertiesFileLoadException
-typealias MainConfigurationError = RefuseRecyclingDatesException.ConfigurationException
+typealias NoPropertyPathPropertyDefined = RefuseRecyclingDatesException.NoPropertyPathPropertyDefinedException
+typealias PropertiesFileDoesNotExist = RefuseRecyclingDatesException.PropertiesFileDoesNotExistException
+typealias PropertiesFileIsDirectory = RefuseRecyclingDatesException.PropertiesFileIsDirectoryException
+typealias MalformedPropertiesFile = RefuseRecyclingDatesException.MalformedPropertiesFileException
+typealias UnableToLoadPropertiesFile = RefuseRecyclingDatesException.PropertiesFileLoadException
+typealias CouldNotConstructApplicationConfiguration = RefuseRecyclingDatesException.CouldNotConstructApplicationConfigurationException
+
 typealias MainFactoryError = RefuseRecyclingDatesException.FactoryException
 typealias MainExecutionError = RefuseRecyclingDatesException.ExecutionException
 
@@ -61,36 +74,45 @@ class Main(properties: Properties = System.getProperties()) {
                     postCodeSearchTermConfiguration(this),
                     startUrlConfiguration(this),
                     waitDurationSecondsConfiguration(this)
-                ).mapLeft { MainConfigurationError }.flatMap { configuration ->
-                    createApplicationFactory(configuration).mapLeft { MainFactoryError }.flatMap { factory ->
-                        factory.notifyOfNextServiceDate.execute().mapLeft { MainExecutionError }
+                )
+                    .mapLeft { error -> CouldNotConstructApplicationConfiguration(cause = error) }
+                    .flatMap { configuration ->
+                        createApplicationFactory(configuration)
+                            .mapLeft { MainFactoryError }.flatMap { factory ->
+                                factory.notifyOfNextServiceDate.execute().mapLeft { MainExecutionError }
+                            }
                     }
-                }
             }
         }
 
     companion object {
         private const val PROPERTIES_PATH_PROPERTY_NAME = "PROPERTIES_PATH"
 
-        private fun propertyPathProperty(properties: Properties): Either<MainNoPropertyPathPropertyError, String> =
+        private fun propertyPathProperty(properties: Properties): Either<NoPropertyPathPropertyDefined, String> =
             when (properties.containsKey(PROPERTIES_PATH_PROPERTY_NAME)) {
                 true -> right(properties.getProperty(PROPERTIES_PATH_PROPERTY_NAME))
-                false -> left(MainNoPropertyPathPropertyError)
+                false -> left(NoPropertyPathPropertyDefined)
             }
 
-        private fun applicationPropertiesFile(propertiesPath: String): Either<MainNoPropertiesFileError, File> =
+        private fun applicationPropertiesFile(propertiesPath: String): Either<PropertiesFileDoesNotExist, File> =
             File(propertiesPath).run {
                 when (exists()) {
                     true -> right(this)
-                    false -> left(MainNoPropertiesFileError)
+                    false -> left(
+                        PropertiesFileDoesNotExist("The properties file path '$propertiesPath' does not exist.")
+                    )
                 }
             }
 
-        private fun applicationPropertiesFileIsNotDirectory(propertiesFile: File): Either<MainPropertiesFileIsDirectoryError, File> =
+        private fun applicationPropertiesFileIsNotDirectory(propertiesFile: File): Either<PropertiesFileIsDirectory, File> =
             propertiesFile.run {
                 when (!isDirectory) {
                     true -> right(this)
-                    false -> left(MainPropertiesFileIsDirectoryError)
+                    false -> left(
+                        PropertiesFileIsDirectory(
+                            "The properties file path '${propertiesFile.absolutePath}' is a directory."
+                        )
+                    )
                 }
             }
 
@@ -102,14 +124,24 @@ class Main(properties: Properties = System.getProperties()) {
                         try {
                             right(Properties().apply { load(fis) })
                         } catch (iae: IllegalArgumentException) {
-                            left(MainMalformedPropertiesFileError)
+                            left(
+                                MalformedPropertiesFile(
+                                    "The properties file '${propertiesFile.absolutePath}' is malformed.",
+                                    iae
+                                )
+                            )
                         }
                     }
             } catch (ioe: IOException) {
-                left(MainPropertiesFileLoadError)
+                left(
+                    UnableToLoadPropertiesFile(
+                        "Could not load the properties file '${propertiesFile.absolutePath}'.",
+                        ioe
+                    )
+                )
             }
 
         @JvmStatic
-        fun main(args: Array<String>): Unit = Main().execute.fold({}, {})
+        fun main(args: Array<String>): Unit = Main().execute.fold({ println(it) }, {})
     }
 }
