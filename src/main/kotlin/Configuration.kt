@@ -2,6 +2,7 @@ package uk.co.ceilingcat.rrd.monolith
 
 import arrow.core.Either
 import arrow.core.computations.either
+import arrow.core.left
 import kotlinx.coroutines.runBlocking
 import uk.co.ceilingcat.rrd.gateways.calendaroutputgateway.CalendarName
 import uk.co.ceilingcat.rrd.gateways.calendaroutputgateway.CalendarSummaryTemplate
@@ -27,11 +28,11 @@ data class InputGatewayPattern(val pattern: Pattern)
 data class OutputGatewayPattern(val pattern: Pattern)
 
 sealed class ConfigurationException : Throwable() {
-    object ConfigurationConstructionException : ConfigurationException()
+    object CouldNotCreateConfigurationException : ConfigurationException()
 }
 
 typealias ConfigurationError = ConfigurationException
-typealias ConfigurationConstructionError = ConfigurationException.ConfigurationConstructionException
+typealias CouldNotCreateConfiguration = ConfigurationException.CouldNotCreateConfigurationException
 
 interface Configuration {
     val applicationFactoryFactoryClassName: ApplicationFactoryFactoryClassName
@@ -86,6 +87,7 @@ typealias PropertyFetcher = Function0<ErrorOrPropertyValue>
 
 // a type that encapsulates a property reference and the data needed to validate and construct it
 class PropertyConfiguration<T>(
+    val name: PropertyName,
     val fetcher: PropertyFetcher,
     val validator: PropertyValidator,
     val constructor: PropertyCreator<T>,
@@ -98,9 +100,17 @@ val propertySourceFetcher: (PropertySource, PropertyName) -> PropertyFetcher =
         }
     }
 
-fun <T> validateAndConstruct(propertyConfiguration: PropertyConfiguration<T>) = with(propertyConfiguration) {
-    validator(fetcher()).map { constructor(it) }
-}
+fun <T> validateAndConstruct(propertyConfiguration: PropertyConfiguration<T>) =
+    with(propertyConfiguration) {
+        try {
+            validator(fetcher()).map { constructor(it) }
+        } catch (t: Throwable) {
+            CouldNotCreateProperty(
+                "An exception was caught whilst validating and constructing the '${this.name}' property",
+                t
+            ).left()
+        }
+    }
 
 fun createConfiguration(
     applicationFactoryFactoryClassName: PropertyConfiguration<ApplicationFactoryFactoryClassName>,
@@ -126,6 +136,7 @@ fun createConfiguration(
     waitDurationSeconds: PropertyConfiguration<WaitDurationSeconds>
 ): Either<ConfigurationError, Configuration> =
     runBlocking {
+        // @todo why does this have to be a throwable
         either.eager<Throwable, Configuration> {
             val v0 = !validateAndConstruct(applicationFactoryFactoryClassName)
             val v1 = !validateAndConstruct(calendarName)
@@ -153,4 +164,4 @@ fun createConfiguration(
                 v0, v1, v2, v18, v19, v17, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v20
             )
         }
-    }.mapLeft { ConfigurationConstructionError }
+    }.mapLeft { CouldNotCreateConfiguration }

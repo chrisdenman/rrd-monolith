@@ -3,16 +3,32 @@ package uk.co.ceilingcat.rrd.monolith
 import arrow.core.Either
 import arrow.core.Either.Companion.conditionally
 import arrow.core.flatMap
-import arrow.core.left
 import java.io.File
 import java.net.URL
 import java.util.regex.Pattern
 import javax.mail.internet.InternetAddress
 
-sealed class PropertyExceptions : Throwable() {
-    object PropertyException : PropertyExceptions()
+sealed class PropertyException(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : Throwable() {
+    data class NoSuchPropertyException(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : PropertyException()
+    data class PropertyValidationException(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : PropertyException()
+    data class CouldNotCreateProertyException(
+        override val message: String? = null,
+        override val cause: Throwable? = null
+    ) : PropertyException()
 }
-typealias PropertyError = PropertyExceptions.PropertyException
+typealias PropertyError = PropertyException
+typealias NoSuchProperty = PropertyException.NoSuchPropertyException
+typealias PropertyFailedValidation = PropertyException.PropertyValidationException
+typealias CouldNotCreateProperty = PropertyException.CouldNotCreateProertyException
 
 typealias ErrorOrPropertyValue = Either<PropertyError, PropertyValue>
 typealias PropertyValuePredicate = (propertyValue: PropertyValue) -> Boolean
@@ -24,32 +40,33 @@ typealias PredicatedPropertyValidator = (PropertyValuePredicate) -> PropertyVali
 val predicated: PredicatedPropertyValidator = { predicate ->
     {
         it.flatMap { propertyValue ->
-            conditionally(predicate(propertyValue), { PropertyError }, { propertyValue })
+            conditionally(
+                predicate(propertyValue),
+                { PropertyFailedValidation("The property value '$propertyValue' failed validation.") },
+                { propertyValue }
+            )
         }
     }
 }
 
-val catching: (PropertyValidator) -> PropertyValidator = { propertyValidator ->
-    { it: ErrorOrPropertyValue ->
-        try {
-            propertyValidator(it)
-        } catch (t: Throwable) {
-            PropertyError.left()
-        }
-    }
-}
-
-val isFqcn: PropertyValidator =
-    catching(predicated { Pattern.compile("([a-zA-Z_\$][a-zA-Z\\d_\$]*\\.)*[a-zA-Z_\$][a-zA-Z\\d_\$]*").asMatchPredicate().test(it) })
-val notBlank: PropertyValidator = predicated { it == "" || !it.isBlank() }
-val notEmpty: PropertyValidator = predicated { it.isNotEmpty() }
 val fileExists: PropertyValidator = predicated { File(it).exists() }
-val isDirectory: PropertyValidator = predicated { File(it).isDirectory }
 val inClosedInterval: (min: Long, max: Long) -> PropertyValidator =
-    { min, max -> catching(predicated { it.toLong() in min..max }) }
-val isRegexPattern: PropertyValidator = catching(predicated { Pattern.compile(it); true })
-val isEmail: PropertyValidator = catching(predicated { InternetAddress(it, true); true })
-val noCrLfsTabs: PropertyValidator = predicated { it.find { it in listOf('\r', '\n', '\t') } == null }
+    { min, max -> predicated { it.toLong() in min..max } }
+val isRegexPattern: PropertyValidator = predicated { Pattern.compile(it); true }
+val isDirectory: PropertyValidator = predicated { File(it).isDirectory }
+val isEmail: PropertyValidator = predicated { InternetAddress(it, true); true }
+val isFqcn: PropertyValidator = predicated {
+    Pattern
+        .compile("([a-zA-Z_\$][a-zA-Z\\d_\$]*\\.)*[a-zA-Z_\$][a-zA-Z\\d_\$]*")
+        .asMatchPredicate()
+        .test(it)
+}
+val isUrl: PropertyValidator = predicated { URL(it); true }
 val lengthIn: (min: Long, max: Long) -> PropertyValidator =
-    { min, max -> catching(predicated { it.length in min..max }) }
-val isUrl: PropertyValidator = catching(predicated { URL(it); true })
+    { min, max -> predicated { it.length in min..max } }
+val notBlank: PropertyValidator = predicated { it == "" || it.isNotBlank() }
+val noCrLfsTabs: PropertyValidator = predicated {
+    it.find { theChar ->
+        theChar in listOf('\r', '\n', '\t')
+    } == null
+}

@@ -105,7 +105,7 @@ internal class MainBadPropertiesSpec {
 
     @Test
     fun `Executing main and pointing the 'PROPERTIES_PATH' to an malformed properties file, yields a MalformedPropertiesFileError`() {
-        File("./src/test/resources/properties/malformed.properties").absolutePath.let { propertiesPath ->
+        File("./src/test/resources/properties/malformed.properties_").absolutePath.let { propertiesPath ->
             assertFailureWithPropertyPathPropertyValue(
                 propertiesPath,
                 MalformedPropertiesFile("The properties file '$propertiesPath' is malformed.", IllegalArgumentException("Malformed \\uxxxx encoding."))
