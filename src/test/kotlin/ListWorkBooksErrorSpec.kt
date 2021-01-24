@@ -23,7 +23,7 @@ class ListWorkBooksErrorSpec {
     fun `That is we can't list the files in the spreadsheet search directory due to a security manager exception, we get a MainExecutionError as it's our sole input gateway`() {
         val systemSecurityManager = System.getSecurityManager()
 
-        MainExecutionError assertLeft withSheet(EMPTY).parentFile.let { spreadsheetDirectory ->
+        ExecutionFailure assertLeft withSheet(EMPTY).parentFile.let { spreadsheetDirectory ->
             PropertiesHelper.mutateProperties({ properties ->
                 properties.set(
                     mapOf(

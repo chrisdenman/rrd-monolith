@@ -1,12 +1,14 @@
 package uk.co.ceilingcat.rrd.monolith
 
 import arrow.core.Either
-import arrow.core.Either.Companion.left
-import arrow.core.Either.Companion.right
+import arrow.core.Either.Companion.conditionally
 import arrow.core.flatMap
+import arrow.core.left
+import arrow.core.right
 import java.io.File
 import java.io.IOException
 import java.util.Properties
+import kotlin.system.exitProcess
 
 sealed class RefuseRecyclingDatesException(
     override val message: String? = null,
@@ -19,16 +21,21 @@ sealed class RefuseRecyclingDatesException(
         override val message: String,
         override val cause: Throwable?
     ) : RefuseRecyclingDatesException()
+
     data class PropertiesFileLoadException(
         override val message: String,
         override val cause: Throwable
     ) : RefuseRecyclingDatesException()
+
     data class CouldNotConstructApplicationConfigurationException(
         override val cause: Throwable
     ) : RefuseRecyclingDatesException()
 
-    object FactoryException : RefuseRecyclingDatesException()
-    object ExecutionException : RefuseRecyclingDatesException()
+    data class CouldNotConstructApplicationFactoryException(
+        override val cause: Throwable
+    ) : RefuseRecyclingDatesException()
+
+    object ExecutionFailureException : RefuseRecyclingDatesException()
 }
 
 typealias MainRefuseRecyclingDatesError = RefuseRecyclingDatesException
@@ -38,9 +45,8 @@ typealias PropertiesFileIsDirectory = RefuseRecyclingDatesException.PropertiesFi
 typealias MalformedPropertiesFile = RefuseRecyclingDatesException.MalformedPropertiesFileException
 typealias UnableToLoadPropertiesFile = RefuseRecyclingDatesException.PropertiesFileLoadException
 typealias CouldNotConstructApplicationConfiguration = RefuseRecyclingDatesException.CouldNotConstructApplicationConfigurationException
-
-typealias MainFactoryError = RefuseRecyclingDatesException.FactoryException
-typealias MainExecutionError = RefuseRecyclingDatesException.ExecutionException
+typealias CouldNotConstructApplicationFactory = RefuseRecyclingDatesException.CouldNotConstructApplicationFactoryException
+typealias ExecutionFailure = RefuseRecyclingDatesException.ExecutionFailureException
 
 class Main(properties: Properties = System.getProperties()) {
 
@@ -75,11 +81,19 @@ class Main(properties: Properties = System.getProperties()) {
                     startUrlConfiguration(this),
                     waitDurationSecondsConfiguration(this)
                 )
-                    .mapLeft { error -> CouldNotConstructApplicationConfiguration(cause = error) }
+                    .mapLeft { error ->
+                        CouldNotConstructApplicationConfiguration(error)
+                    }
                     .flatMap { configuration ->
                         createApplicationFactory(configuration)
-                            .mapLeft { MainFactoryError }.flatMap { factory ->
-                                factory.notifyOfNextServiceDate.execute().mapLeft { MainExecutionError }
+                            .mapLeft { error ->
+                                CouldNotConstructApplicationFactory(error)
+                            }
+                            .flatMap { factory ->
+                                factory
+                                    .notifyOfNextServiceDate
+                                    .execute()
+                                    .mapLeft { ExecutionFailure }
                             }
                     }
             }
@@ -89,32 +103,25 @@ class Main(properties: Properties = System.getProperties()) {
         private const val PROPERTIES_PATH_PROPERTY_NAME = "PROPERTIES_PATH"
 
         private fun propertyPathProperty(properties: Properties): Either<NoPropertyPathPropertyDefined, String> =
-            when (properties.containsKey(PROPERTIES_PATH_PROPERTY_NAME)) {
-                true -> right(properties.getProperty(PROPERTIES_PATH_PROPERTY_NAME))
-                false -> left(NoPropertyPathPropertyDefined)
+            conditionally(properties.containsKey(PROPERTIES_PATH_PROPERTY_NAME), { NoPropertyPathPropertyDefined }) {
+                properties.getProperty(PROPERTIES_PATH_PROPERTY_NAME)
             }
 
         private fun applicationPropertiesFile(propertiesPath: String): Either<PropertiesFileDoesNotExist, File> =
             File(propertiesPath).run {
-                when (exists()) {
-                    true -> right(this)
-                    false -> left(
-                        PropertiesFileDoesNotExist("The properties file path '$propertiesPath' does not exist.")
-                    )
-                }
+                conditionally(
+                    exists(),
+                    { PropertiesFileDoesNotExist("The properties file path '$propertiesPath' does not exist.") }
+                ) { this }
             }
 
         private fun applicationPropertiesFileIsNotDirectory(propertiesFile: File): Either<PropertiesFileIsDirectory, File> =
-            propertiesFile.run {
-                when (!isDirectory) {
-                    true -> right(this)
-                    false -> left(
-                        PropertiesFileIsDirectory(
-                            "The properties file path '${propertiesFile.absolutePath}' is a directory."
-                        )
-                    )
+            conditionally(
+                !propertiesFile.isDirectory,
+                {
+                    PropertiesFileIsDirectory("The properties file path '${propertiesFile.absolutePath}' is a directory.")
                 }
-            }
+            ) { propertiesFile }
 
         private fun loadApplicationProperties(propertiesFile: File): Either<MainRefuseRecyclingDatesError, Properties> =
             try {
@@ -122,26 +129,22 @@ class Main(properties: Properties = System.getProperties()) {
                     .inputStream()
                     .use { fis ->
                         try {
-                            right(Properties().apply { load(fis) })
+                            Properties().apply { load(fis) }.right()
                         } catch (iae: IllegalArgumentException) {
-                            left(
-                                MalformedPropertiesFile(
-                                    "The properties file '${propertiesFile.absolutePath}' is malformed.",
-                                    iae
-                                )
-                            )
+                            MalformedPropertiesFile(
+                                "The properties file '${propertiesFile.absolutePath}' is malformed.",
+                                iae
+                            ).left()
                         }
                     }
             } catch (ioe: IOException) {
-                left(
-                    UnableToLoadPropertiesFile(
-                        "Could not load the properties file '${propertiesFile.absolutePath}'.",
-                        ioe
-                    )
-                )
+                UnableToLoadPropertiesFile(
+                    "Could not load the properties file '${propertiesFile.absolutePath}'.",
+                    ioe
+                ).left()
             }
 
         @JvmStatic
-        fun main(args: Array<String>): Unit = Main().execute.fold({ println(it) }, {})
+        fun main(args: Array<String>): Unit = Main().execute.fold({ println(it) }, { exitProcess(0)})
     }
 }

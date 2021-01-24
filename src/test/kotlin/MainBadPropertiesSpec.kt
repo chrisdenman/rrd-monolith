@@ -346,7 +346,7 @@ internal class MainBadPropertiesSpec {
 
     @Test
     fun `An incorrect email password, results in a MainExecutionError`() {
-        MainExecutionError assertLeft withRefuseDaysHence().let { spreadsheetFile ->
+        ExecutionFailure assertLeft withRefuseDaysHence().let { spreadsheetFile ->
             PropertiesHelper.mutateProperties({ properties ->
                 properties.set(
                     mapOf(
@@ -364,7 +364,7 @@ internal class MainBadPropertiesSpec {
 
     @Test
     fun `An incorrect email username, results in a MainExecutionError`() {
-        MainExecutionError assertLeft withRefuseDaysHence().let { spreadsheetFile ->
+        ExecutionFailure assertLeft withRefuseDaysHence().let { spreadsheetFile ->
             PropertiesHelper.mutateProperties({ properties ->
                 properties.set(
                     mapOf(
@@ -382,7 +382,7 @@ internal class MainBadPropertiesSpec {
 
     @Test
     fun `An incorrect email source mailbox, results in a MainExecutionError`() {
-        MainExecutionError assertLeft withRefuseDaysHence().let { spreadsheetFile ->
+        ExecutionFailure assertLeft withRefuseDaysHence().let { spreadsheetFile ->
             PropertiesHelper.mutateProperties({ properties ->
                 properties.set(
                     mapOf(
@@ -486,12 +486,24 @@ internal class MainBadPropertiesSpec {
 
     @Test
     fun `Executing main and setting the 'INPUT_GATEWAY_PATTERN' property to a value that precludes all input gateways, yields an error`() {
-        left(MainFactoryError) assertEquals executeMainWithPropertyValue(INPUT_GATEWAY_PATTERN_PROPERTY_NAME, ".")
+        ".".let { inputGatewayPattern ->
+            left(
+                CouldNotConstructApplicationFactory(
+                    NoInputGateways("No input gateways were available using the pattern '$inputGatewayPattern'.")
+                )
+            ) assertEquals executeMainWithPropertyValue(INPUT_GATEWAY_PATTERN_PROPERTY_NAME, inputGatewayPattern)
+        }
     }
 
     @Test
     fun `Executing main and setting the 'OUTPUT_GATEWAY_PATTERN' property to a value that precludes all input gateways, yields an error`() {
-        left(MainFactoryError) assertEquals executeMainWithPropertyValue(OUTPUT_GATEWAY_PATTERN_PROPERTY_NAME, ".")
+        ".".let { outputGatewayPattern ->
+            left(
+                CouldNotConstructApplicationFactory(
+                    NoOutputGateways("No output gateways were available using the pattern '$outputGatewayPattern'.")
+                )
+            ) assertEquals executeMainWithPropertyValue(OUTPUT_GATEWAY_PATTERN_PROPERTY_NAME, outputGatewayPattern)
+        }
     }
 
     companion object {
