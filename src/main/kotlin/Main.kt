@@ -8,6 +8,7 @@ import arrow.core.right
 import java.io.File
 import java.io.IOException
 import java.util.Properties
+import kotlin.system.exitProcess
 
 sealed class RefuseRecyclingDatesException(
     override val message: String? = null,
@@ -144,6 +145,6 @@ class Main(properties: Properties = System.getProperties()) {
             }
 
         @JvmStatic
-        fun main(args: Array<String>): Unit = Main().execute.fold({ println(it) }, {})
+        fun main(args: Array<String>): Unit = Main().execute.fold({ println(it) }, { exitProcess(0)})
     }
 }
