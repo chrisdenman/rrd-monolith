@@ -69,6 +69,7 @@ enum class ConfigurationProperties(val propertyName: PropertyName) {
     WORKSHEETS_SEARCH_DIRECTORY("WORKSHEETS_SEARCH_DIRECTORY")
 }
 
+// @tod factor all the stuff below
 val applicationFactoryFactoryClassNameConfiguration: (PropertySource) -> PropertyConfiguration<ApplicationFactoryFactoryClassName> =
     {
         APPLICATION_FACTORY_FACTORY_CLASS_NAME.propertyName.let { propertyName ->

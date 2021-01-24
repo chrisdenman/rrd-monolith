@@ -51,7 +51,7 @@ class MainFunctionalSpec {
     @Test
     fun `That if all input gateways return errors, we should obtain a MainExecutionError`() {
         withRefuseDaysHence(0).let { spreadsheetDirectory ->
-            MainExecutionError assertLeft mutateProperties({ properties ->
+            ExecutionFailure assertLeft mutateProperties({ properties ->
                 properties.set(
                     mapOf(
                         WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to spreadsheetDirectory.canonicalPath,
@@ -67,7 +67,7 @@ class MainFunctionalSpec {
     @Test
     fun `That if all output gateways return errors, we should obtain a MainExecutionError`() {
         withRefuseDaysHence(1).let { spreadsheetDirectory ->
-            MainExecutionError assertLeft mutateProperties({ properties ->
+            ExecutionFailure assertLeft mutateProperties({ properties ->
                 properties.set(
                     mapOf(
                         WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to
@@ -83,45 +83,64 @@ class MainFunctionalSpec {
 
     @Test
     fun `That if the factory returns no input gateways, we get a MainFactoryError`() {
-        withRefuseDaysHence(1).let { spreadsheetDirectory ->
-            MainFactoryError assertLeft mutateProperties({ properties ->
-                properties.set(
-                    mapOf(
-                        WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to
-                            spreadsheetDirectory.canonicalPath,
-                        APPLICATION_FACTORY_FACTORY_CLASS_NAME_PROPERTY_NAME to
-                            NoInputGateways::class.qualifiedName!!
+        "NoSuchKnownGateway".let { inputGatewayPattern ->
+            withRefuseDaysHence(1).let { spreadsheetDirectory ->
+                CouldNotConstructApplicationFactory(
+                    CouldNotCreateUseCase(
+                        uk.co.ceilingcat.rrd.usecases.NoInputGatewaysError
                     )
-                )
-            }).flatMap { (bootstrapProperties) -> Main(bootstrapProperties).execute }
+                ) assertLeft mutateProperties({ properties ->
+                    properties.set(
+                        mapOf(
+                            WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to
+                                spreadsheetDirectory.canonicalPath,
+                            APPLICATION_FACTORY_FACTORY_CLASS_NAME_PROPERTY_NAME to
+                                NoInputGateways::class.qualifiedName!!
+                        )
+                    )
+                }).flatMap { (bootstrapProperties) -> Main(bootstrapProperties).execute }
+            }
         }
     }
 
     @Test
     fun `That if the factory returns no output gateways, we get a MainFactoryError`() {
-        withRefuseDaysHence(1).let { spreadsheetDirectory ->
-            MainFactoryError assertLeft mutateProperties({ properties ->
-                properties.set(
-                    mapOf(
-                        WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to
-                            spreadsheetDirectory.canonicalPath,
-                        APPLICATION_FACTORY_FACTORY_CLASS_NAME_PROPERTY_NAME to
-                            NoOutputGateways::class.qualifiedName!!
+        "NoSuchKnownGateway".let { outputGatewayPattern ->
+            withRefuseDaysHence(1).let { spreadsheetDirectory ->
+                CouldNotConstructApplicationFactory(
+                    CouldNotCreateUseCase(
+                        uk.co.ceilingcat.rrd.usecases.NoOutputGatewaysError
                     )
-                )
-            }).flatMap { (bootstrapProperties) -> Main(bootstrapProperties).execute }
+                ) assertLeft mutateProperties({ properties ->
+                    properties.set(
+                        mapOf(
+                            WORKSHEETS_SEARCH_DIRECTORY_PROPERTY_NAME to
+                                spreadsheetDirectory.canonicalPath,
+                            APPLICATION_FACTORY_FACTORY_CLASS_NAME_PROPERTY_NAME to
+                                NoOutputGateways::class.qualifiedName!!
+                        )
+                    )
+                }).flatMap { (bootstrapProperties) -> Main(bootstrapProperties).execute }
+            }
         }
     }
 
     @Test
     fun `If the factory factory class cannot be constructed, we get a MainFactoryError`() {
-        MainFactoryError assertLeft mutateProperties({ properties ->
-            properties.set(
-                mapOf(
-                    APPLICATION_FACTORY_FACTORY_CLASS_NAME_PROPERTY_NAME to "you.cannot.construct.this"
+        "you.cannot.construct.this".let { applicationFactoryFactoryClassName ->
+            CouldNotConstructApplicationFactory(
+                CouldNotCreateFactoryClass(
+                    "Could not load the application factory '$applicationFactoryFactoryClassName'."
                 )
-            )
-        }).flatMap { (bootstrapProperties) -> Main(bootstrapProperties).execute }
+            ) assertLeft
+                mutateProperties({ properties ->
+                    properties.set(
+                        mapOf(
+                            APPLICATION_FACTORY_FACTORY_CLASS_NAME_PROPERTY_NAME to applicationFactoryFactoryClassName
+                        )
+                    )
+                }).flatMap { (bootstrapProperties) -> Main(bootstrapProperties).execute }
+        }
     }
 
     @Test
