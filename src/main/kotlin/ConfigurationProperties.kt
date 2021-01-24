@@ -69,235 +69,165 @@ enum class ConfigurationProperties(val propertyName: PropertyName) {
     WORKSHEETS_SEARCH_DIRECTORY("WORKSHEETS_SEARCH_DIRECTORY")
 }
 
-// @tod factor all the stuff below
+private fun <T> makePropertyConfiguration(
+    property: ConfigurationProperties,
+    validator: PropertyValidator,
+    constructor: PropertyCreator<T>,
+): (PropertySource) -> PropertyConfiguration<T> = { propertySource ->
+    property.propertyName.let { propertyName ->
+        PropertyConfiguration(
+            propertyName,
+            propertySourceFetcher(propertySource, propertyName),
+            validator,
+            constructor
+        )
+    }
+}
+
 val applicationFactoryFactoryClassNameConfiguration: (PropertySource) -> PropertyConfiguration<ApplicationFactoryFactoryClassName> =
-    {
-        APPLICATION_FACTORY_FACTORY_CLASS_NAME.propertyName.let { propertyName ->
-            PropertyConfiguration(
-                propertyName,
-                propertySourceFetcher(it, propertyName),
-                isFqcn compose lengthIn(1, 300),
-                { propertyValue -> ApplicationFactoryFactoryClassName(propertyValue) }
-            )
-        }
-    }
+    makePropertyConfiguration(
+        APPLICATION_FACTORY_FACTORY_CLASS_NAME,
+        isFqcn compose lengthIn(1, 300),
+        { propertyValue -> ApplicationFactoryFactoryClassName(propertyValue) }
+    )
 
-val calendarNameConfiguration: (PropertySource) -> PropertyConfiguration<CalendarName> = {
-    CALENDAR_NAME.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            notBlank compose noCrLfsTabs compose lengthIn(1, 100),
-            { propertyValue -> CalendarName(propertyValue) }
-        )
-    }
-}
+val calendarNameConfiguration: (PropertySource) -> PropertyConfiguration<CalendarName> =
+    makePropertyConfiguration(
+        CALENDAR_NAME,
+        notBlank compose noCrLfsTabs compose lengthIn(1, 100),
+        { propertyValue -> CalendarName(propertyValue) }
+    )
 
-val calendarSummaryTemplateConfiguration: (PropertySource) -> PropertyConfiguration<CalendarSummaryTemplate> = {
-    CALENDAR_SUMMARY_TEMPLATE.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            notBlank compose noCrLfsTabs compose lengthIn(1, 100),
-            { propertyValue -> CalendarSummaryTemplate(propertyValue) }
-        )
-    }
-}
+val calendarSummaryTemplateConfiguration: (PropertySource) -> PropertyConfiguration<CalendarSummaryTemplate> =
+    makePropertyConfiguration(
+        CALENDAR_SUMMARY_TEMPLATE,
+        notBlank compose noCrLfsTabs compose lengthIn(1, 100),
+        { propertyValue -> CalendarSummaryTemplate(propertyValue) }
+    )
 
-val driverPropertyConfiguration: (PropertySource) -> PropertyConfiguration<DriverProperty> = {
-    DRIVER_PROPERTY.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            notBlank compose lengthIn(1, 200),
-            { propertyValue -> DriverProperty(propertyValue) }
-        )
-    }
-}
+val driverPropertyConfiguration: (PropertySource) -> PropertyConfiguration<DriverProperty> =
+    makePropertyConfiguration(
+        DRIVER_PROPERTY,
+        notBlank compose lengthIn(1, 200),
+        { propertyValue -> DriverProperty(propertyValue) }
+    )
 
-val driverLocationConfiguration: (PropertySource) -> PropertyConfiguration<DriverLocation> = {
-    DRIVER_LOCATION.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            fileExists,
-            { propertyValue -> DriverLocation(File(propertyValue)) }
-        )
-    }
-}
+val driverLocationConfiguration: (PropertySource) -> PropertyConfiguration<DriverLocation> =
+    makePropertyConfiguration(
+        DRIVER_LOCATION,
+        fileExists,
+        { propertyValue -> DriverLocation(File(propertyValue)) }
+    )
 
-val driverOptionsConfiguration: (PropertySource) -> PropertyConfiguration<DriverOptions> = {
-    DRIVER_OPTIONS.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            notBlank compose lengthIn(0, 1000),
-            { propertyValue -> DriverOptions(propertyValue) }
-        )
-    }
-}
+val driverOptionsConfiguration: (PropertySource) -> PropertyConfiguration<DriverOptions> =
+    makePropertyConfiguration(
+        DRIVER_OPTIONS,
+        notBlank compose lengthIn(0, 1000),
+        { propertyValue -> DriverOptions(propertyValue) }
+    )
 
-val emailBodyTextConfiguration: (PropertySource) -> PropertyConfiguration<EmailBodyText> = {
-    EMAIL_BODY_TEXT.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            notBlank compose lengthIn(0, 200),
-            { propertyValue -> EmailBodyText(propertyValue) }
-        )
-    }
-}
+val emailBodyTextConfiguration: (PropertySource) -> PropertyConfiguration<EmailBodyText> =
+    makePropertyConfiguration(
+        EMAIL_BODY_TEXT,
+        notBlank compose lengthIn(0, 200),
+        { propertyValue -> EmailBodyText(propertyValue) }
+    )
 
-val emailFromConfiguration: (PropertySource) -> PropertyConfiguration<EmailFrom> = {
-    EMAIL_FROM.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            isEmail,
-            { propertyValue -> EmailFrom(InternetAddress(propertyValue, true)) }
-        )
-    }
-}
+val emailFromConfiguration: (PropertySource) -> PropertyConfiguration<EmailFrom> =
+    makePropertyConfiguration(
+        EMAIL_FROM,
+        isEmail,
+        { propertyValue -> EmailFrom(InternetAddress(propertyValue, true)) }
+    )
 
-val emailPasswordConfiguration: (PropertySource) -> PropertyConfiguration<EmailPassword> = {
-    EMAIL_PASSWORD.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            notBlank compose noCrLfsTabs compose lengthIn(8, 100),
-            { propertyValue -> EmailPassword(propertyValue) }
-        )
-    }
-}
+val emailPasswordConfiguration: (PropertySource) -> PropertyConfiguration<EmailPassword> =
+    makePropertyConfiguration(
+        EMAIL_PASSWORD,
 
-val emailToConfiguration: (PropertySource) -> PropertyConfiguration<EmailTo> = {
-    EMAIL_TO.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            isEmail,
-            { propertyValue -> EmailTo(InternetAddress(propertyValue, true)) }
-        )
-    }
-}
+        notBlank compose noCrLfsTabs compose lengthIn(8, 100),
+        { propertyValue -> EmailPassword(propertyValue) }
+    )
 
-val emailUserNameConfiguration: (PropertySource) -> PropertyConfiguration<EmailUserName> = {
-    EMAIL_USER_NAME.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            notBlank compose noCrLfsTabs compose lengthIn(8, 50),
-            { propertyValue -> EmailUserName(propertyValue) }
-        )
-    }
-}
+val emailToConfiguration: (PropertySource) -> PropertyConfiguration<EmailTo> =
+    makePropertyConfiguration(
+        EMAIL_TO,
+        isEmail,
+        { propertyValue -> EmailTo(InternetAddress(propertyValue, true)) }
+    )
 
-val inputGatewayPatternConfiguration: (PropertySource) -> PropertyConfiguration<InputGatewayPattern> = {
-    INPUT_GATEWAY_PATTERN.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            notBlank compose noCrLfsTabs compose isRegexPattern compose lengthIn(1, 1024),
-            { propertyValue -> InputGatewayPattern(Pattern.compile(propertyValue)) }
-        )
-    }
-}
+val emailUserNameConfiguration: (PropertySource) -> PropertyConfiguration<EmailUserName> =
+    makePropertyConfiguration(
+        EMAIL_USER_NAME,
+        notBlank compose noCrLfsTabs compose lengthIn(8, 50),
+        { propertyValue -> EmailUserName(propertyValue) }
+    )
 
-val MaximumNotifyDurationSeconds: (PropertySource) -> PropertyConfiguration<MaximumNotifyDurationSeconds> = {
-    MAXIMUM_NOTIFY_DURATION_SECONDS.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            inClosedInterval(1, 60),
-            { propertyValue -> MaximumNotifyDurationSeconds(propertyValue.toLong()) }
-        )
-    }
-}
+val inputGatewayPatternConfiguration: (PropertySource) -> PropertyConfiguration<InputGatewayPattern> =
+    makePropertyConfiguration(
+        INPUT_GATEWAY_PATTERN,
+        notBlank compose noCrLfsTabs compose isRegexPattern compose lengthIn(1, 1024),
+        { propertyValue -> InputGatewayPattern(Pattern.compile(propertyValue)) }
+    )
 
-val outputGatewayPatternConfiguration: (PropertySource) -> PropertyConfiguration<OutputGatewayPattern> = {
-    OUTPUT_GATEWAY_PATTERN.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            notBlank compose noCrLfsTabs compose isRegexPattern compose lengthIn(1, 1024),
-            { propertyValue -> OutputGatewayPattern(Pattern.compile(propertyValue)) }
-        )
-    }
-}
+val MaximumNotifyDurationSeconds: (PropertySource) -> PropertyConfiguration<MaximumNotifyDurationSeconds> =
+    makePropertyConfiguration(
+        MAXIMUM_NOTIFY_DURATION_SECONDS,
+        inClosedInterval(1, 60),
+        { propertyValue -> MaximumNotifyDurationSeconds(propertyValue.toLong()) }
+    )
 
-val streetNameConfiguration: (PropertySource) -> PropertyConfiguration<StreetName> = {
-    STREET_NAME.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            notBlank compose noCrLfsTabs compose lengthIn(4, 50),
-            { propertyValue -> StreetName(propertyValue) }
-        )
-    }
-}
+val outputGatewayPatternConfiguration: (PropertySource) -> PropertyConfiguration<OutputGatewayPattern> =
+    makePropertyConfiguration(
+        OUTPUT_GATEWAY_PATTERN,
+        notBlank compose noCrLfsTabs compose isRegexPattern compose lengthIn(1, 1024),
+        { propertyValue -> OutputGatewayPattern(Pattern.compile(propertyValue)) }
+    )
 
-val subjectTemplateConfiguration: (PropertySource) -> PropertyConfiguration<SubjectTemplate> = {
-    SUBJECT_TEMPLATE.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            notBlank compose noCrLfsTabs compose lengthIn(10, 100),
-            { propertyValue -> SubjectTemplate(propertyValue) }
-        )
-    }
-}
+val streetNameConfiguration: (PropertySource) -> PropertyConfiguration<StreetName> =
+    makePropertyConfiguration(
+        STREET_NAME,
+        notBlank compose noCrLfsTabs compose lengthIn(4, 50),
+        { propertyValue -> StreetName(propertyValue) }
+    )
 
-val worksheetsSearchDirectoryConfiguration: (PropertySource) -> PropertyConfiguration<WorkSheetsSearchDirectory> = {
-    WORKSHEETS_SEARCH_DIRECTORY.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            fileExists compose isDirectory,
-            { propertyValue -> WorkSheetsSearchDirectory(File(propertyValue)) }
-        )
-    }
-}
+val subjectTemplateConfiguration: (PropertySource) -> PropertyConfiguration<SubjectTemplate> =
+    makePropertyConfiguration(
+        SUBJECT_TEMPLATE,
+        notBlank compose noCrLfsTabs compose lengthIn(10, 100),
+        { propertyValue -> SubjectTemplate(propertyValue) }
+    )
 
-val streetNameSearchTermConfiguration: (PropertySource) -> PropertyConfiguration<StreetNameSearchTerm> = {
-    STREET_NAME_SEARCH_TERM.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            notBlank compose noCrLfsTabs compose lengthIn(5, 50),
-            { propertyValue -> StreetNameSearchTerm(propertyValue) }
-        )
-    }
-}
+val worksheetsSearchDirectoryConfiguration: (PropertySource) -> PropertyConfiguration<WorkSheetsSearchDirectory> =
+    makePropertyConfiguration(
+        WORKSHEETS_SEARCH_DIRECTORY,
+        fileExists compose isDirectory,
+        { propertyValue -> WorkSheetsSearchDirectory(File(propertyValue)) }
+    )
 
-val postCodeSearchTermConfiguration: (PropertySource) -> PropertyConfiguration<PostCodeSearchTerm> = {
-    POST_CODE_SEARCH_TERM.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            notBlank compose noCrLfsTabs compose lengthIn(5, 50),
-            { propertyValue -> PostCodeSearchTerm(propertyValue) }
-        )
-    }
-}
+val streetNameSearchTermConfiguration: (PropertySource) -> PropertyConfiguration<StreetNameSearchTerm> =
+    makePropertyConfiguration(
+        STREET_NAME_SEARCH_TERM,
+        notBlank compose noCrLfsTabs compose lengthIn(5, 50),
+        { propertyValue -> StreetNameSearchTerm(propertyValue) }
+    )
 
-val startUrlConfiguration: (PropertySource) -> PropertyConfiguration<StartUrl> = {
-    START_URL.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            isUrl,
-            { propertyValue -> StartUrl(URL(propertyValue)) }
-        )
-    }
-}
+val postCodeSearchTermConfiguration: (PropertySource) -> PropertyConfiguration<PostCodeSearchTerm> =
+    makePropertyConfiguration(
+        POST_CODE_SEARCH_TERM,
+        notBlank compose noCrLfsTabs compose lengthIn(5, 50),
+        { propertyValue -> PostCodeSearchTerm(propertyValue) }
+    )
 
-val waitDurationSecondsConfiguration: (PropertySource) -> PropertyConfiguration<WaitDurationSeconds> = {
-    WAIT_DURATION_SECONDS.propertyName.let { propertyName ->
-        PropertyConfiguration(
-            propertyName,
-            propertySourceFetcher(it, propertyName),
-            inClosedInterval(1, Long.MAX_VALUE),
-            { propertyValue -> WaitDurationSeconds(propertyValue.toLong()) }
-        )
-    }
-}
+val startUrlConfiguration: (PropertySource) -> PropertyConfiguration<StartUrl> =
+    makePropertyConfiguration(
+        START_URL,
+        isUrl,
+        { propertyValue -> StartUrl(URL(propertyValue)) }
+    )
+
+val waitDurationSecondsConfiguration: (PropertySource) -> PropertyConfiguration<WaitDurationSeconds> =
+    makePropertyConfiguration(
+        WAIT_DURATION_SECONDS,
+        inClosedInterval(1, Long.MAX_VALUE),
+        { propertyValue -> WaitDurationSeconds(propertyValue.toLong()) }
+    )
